@@ -17,7 +17,7 @@ matchLineA line =
    in tens + ones
 
 partA :: [String] -> Int
-partA lines = sum $ map matchLineA lines
+partA = sum . map matchLineA
 
 main :: IO ()
 main =
