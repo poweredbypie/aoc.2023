@@ -115,6 +115,14 @@ func NewRanges(line string) Seeds {
 	return seeds
 }
 
+func (s *Seeds) Count() int {
+	count := 0
+	for _, currRange := range s.Ranges {
+		count += currRange.Length
+	}
+	return count
+}
+
 func (s *Seeds) Next() bool {
 	currRange := s.Ranges[s.currIdx]
 	if !s.nexted {
@@ -248,6 +256,7 @@ func main() {
 	partB := NewRanges(firstLine)
 
 	maps := GetMaps(scan)
+	fmt.Printf("Part B has %v seeds\n", partB.Count())
 	fmt.Printf("Part A: minimum mapped value is %v\n", maps.GetMin(&partA))
 	fmt.Printf("Part B: minimum mapped value is %v\n", maps.GetMin(&partB))
 }
