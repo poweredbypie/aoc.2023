@@ -59,7 +59,6 @@ impl Hand {
 
         let mut map = HashMap::<Card, u32>::new();
         for card in others {
-            if let Card::J = card {}
             *map.entry(card.clone()).or_insert(0) += 1;
         }
 
@@ -97,8 +96,6 @@ impl Hand {
             .chars()
             .filter_map(Card::from_char)
             .collect::<Vec<_>>();
-
-        assert!(cards.len() == 5);
 
         let bid = split.1.parse::<u32>().ok()?;
         let kind = Hand::hand_kind(&cards);
