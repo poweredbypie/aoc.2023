@@ -67,17 +67,17 @@ impl Hand {
         for card in &cards {
             *map.entry(card.clone()).or_insert(0) += 1;
         }
-        let max_same = map.iter().max_by_key(|pair| pair.1)?.1;
+        let max_same = *map.iter().max_by_key(|pair| pair.1)?.1;
         let kind = match map.len() {
             1 => HandKind::FiveOfAKind,
             // 2 cards can only have (1, 4) or (2, 3) combos with 5 cards
             // (1, 4) or (4, 1) case
-            2 if *max_same == 4 => HandKind::FourOfAKind,
+            2 if max_same == 4 => HandKind::FourOfAKind,
             // (2, 3) or (3, 2) case
             2 => HandKind::FullHouse,
             // 3 cards can be (1, 1, 3) or (1, 2, 2)
             // (1, 1, 3) or (1, 3, 1) or (3, 1, 1) case
-            3 if *max_same == 3 => HandKind::ThreeOfAKind,
+            3 if max_same == 3 => HandKind::ThreeOfAKind,
             // (1, 2, 2) or (2, 1, 2) or (2, 2, 1) case
             3 => HandKind::TwoPair,
             // 4 cards has only the (1, 1, 1, 2) case
