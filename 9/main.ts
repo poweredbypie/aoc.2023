@@ -1,5 +1,6 @@
 // Run with `deno run --allow-red main.ts`
 
+// Kind of annoying I can't nest this in the class
 type Recur = (nums: number[]) => number;
 type Action = (next: number | null, nums: number[]) => number;
 
@@ -9,6 +10,7 @@ class History {
     this.nums = line.split(" ").map((str) => parseInt(str));
   }
   private recur(action: Action): Recur {
+    // This needs to be a variable so I can recurse
     const func = (nums: number[]): number => {
       let allZero = true;
       const diffs: number[] = [];
@@ -17,27 +19,17 @@ class History {
         allZero = allZero && diff == 0;
         diffs.push(nums[i + 1] - nums[i]);
       }
-      if (allZero) {
-        return action(null, nums);
-      } else {
-        return action(func(diffs), nums);
-      }
+      return action(allZero ? null : func(diffs), nums);
     };
     return func;
   }
-  // Part A: this might be too inefficient for Part B, we'll see
+  // Part A: predict the number after the last one
   predict(): number {
     return this.recur((next, nums) => (next ?? 0) + nums.at(-1)!)(this.nums);
   }
   // Part B: "retrodict" the number before the first one
   retrodict(): number {
-    return this.recur((next, nums) => {
-      if (next == null) {
-        return nums.at(0)!;
-      } else {
-        return nums.at(0)! - next;
-      }
-    })(this.nums);
+    return this.recur((next, nums) => nums.at(0)! - (next ?? 0))(this.nums);
   }
 }
 
@@ -52,7 +44,6 @@ async function main() {
     (sum, history) => sum + history.predict(),
     0,
   );
-  console.log("redrosjdflwkejr");
   const retrodicted = histories.reduce(
     (sum, history) => sum + history.retrodict(),
     0,
