@@ -11,4 +11,4 @@ My Advent of Code 2023 solutions
 | 6   | :white_check_mark: | :white_check_mark: | :x:                | :x:                | :x:                | :x:                |
 | 7   | :x:                | :x:                | :white_check_mark: | :x:                | :x:                | :x:                |
 | 8   | :x:                | :x:                | :x:                | :x:                | :white_check_mark: | :x:                |
-| 9   | :x:                | :x:                | :x:                | :x:                | :x:                | :white_check_mark: |
+| 9   | :x:                | :white_check_mark: | :x:                | :x:                | :x:                | :white_check_mark: |
