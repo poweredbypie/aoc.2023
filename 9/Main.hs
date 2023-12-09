@@ -5,32 +5,26 @@ import Text.Read (readMaybe)
 lineToNums :: String -> [Int]
 lineToNums = mapMaybe readMaybe . words
 
-predict :: [Int] -> Int
-predict nums =
+deriv :: (Int -> [Int] -> Int) -> [Int] -> Int
+deriv action nums =
   let pairs = zip nums (tail nums)
       diffs = map (uncurry (-) . swap) pairs
    in if all (== 0) diffs
-        then last nums
-        else predict diffs + last nums
+        then action 0 nums
+        else action (deriv action diffs) nums
 
-predictAll :: [String] -> Int
-predictAll = sum . map (predict . lineToNums)
+predict :: [Int] -> Int
+predict = deriv $ \val nums -> val + last nums
 
 retrodict :: [Int] -> Int
-retrodict nums =
-  let pairs = zip nums (tail nums)
-      diffs = map (uncurry (-) . swap) pairs
-   in if all (== 0) diffs
-        then head nums
-        else head nums - retrodict diffs
+retrodict = deriv $ \val nums -> head nums - val
 
-retrodictAll :: [String] -> Int
-retrodictAll = sum . map (retrodict . lineToNums)
-
+main :: IO ()
 main =
   do
     file <- readFile "input"
+    let nums = map lineToNums (lines file)
     putStr "Sum of predicted values is "
-    print $ predictAll $ lines file
+    print $ sum $ map predict nums
     putStr "Sum of retrodicted values is "
-    print $ retrodictAll $ lines file
+    print $ sum $ map retrodict nums
