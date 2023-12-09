@@ -2,7 +2,7 @@
 
 // Kind of annoying I can't nest this in the class
 type Recur = (nums: number[]) => number;
-type Action = (next: number | null, nums: number[]) => number;
+type Action = (next: number, nums: number[]) => number;
 
 class History {
   nums: number[];
@@ -19,17 +19,17 @@ class History {
         allZero = allZero && diff == 0;
         diffs.push(nums[i + 1] - nums[i]);
       }
-      return action(allZero ? null : func(diffs), nums);
+      return action(allZero ? 0 : func(diffs), nums);
     };
     return func;
   }
   // Part A: predict the number after the last one
   predict(): number {
-    return this.recur((next, nums) => (next ?? 0) + nums.at(-1)!)(this.nums);
+    return this.recur((next, nums) => next + nums.at(-1)!)(this.nums);
   }
   // Part B: "retrodict" the number before the first one
   retrodict(): number {
-    return this.recur((next, nums) => nums.at(0)! - (next ?? 0))(this.nums);
+    return this.recur((next, nums) => nums.at(0)! - next)(this.nums);
   }
 }
 
