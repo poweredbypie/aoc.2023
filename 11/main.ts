@@ -5,30 +5,27 @@ class Coord {
     this.row = row;
     this.col = col;
   }
-  manhattan(other: Coord) {
-    return Math.abs(other.row - this.row) + Math.abs(other.col - this.col);
+  toString() {
+    return `(${this.row}, ${this.col})`;
   }
 }
 
 class GalaxyMap {
   lines: string[];
+  emptyRows: number[] = [];
+  emptyCols: number[] = [];
+  weight = 1;
   constructor(str: string) {
     this.lines = str.split("\n").filter((line) => line != "");
-    console.log(this.lines);
   }
   expand() {
-    // Expand all empty rows
+    // Find all empty rows
     for (let row = 0; row < this.lines.length; row += 1) {
-      console.log(`Row ${row} / ${this.lines.length}`);
       if (this.lines[row].includes("#")) {
         continue;
       }
-      // Duplicate the line if no galaxies exist in it
-      this.lines.splice(row, 0, this.lines[row]);
-      // Double up the row so we can skip over the newly created one
-      row += 1;
+      this.emptyRows.push(row);
     }
-    // Expand all empty columns
     const colIncludes = (col: number, val: string) => {
       for (let row = 0; row < this.lines.length; row += 1) {
         if (this.lines[row][col] == val) {
@@ -37,21 +34,18 @@ class GalaxyMap {
       }
       return false;
     };
-    const colInsert = (col: number, val: string) => {
-      for (let row = 0; row < this.lines.length; row += 1) {
-        this.lines[row] = this.lines[row].slice(0, col) + val +
-          this.lines[row].slice(col);
-      }
-    };
+    // Find all empty columns
     for (let col = 0; col < this.lines[0].length; col += 1) {
-      console.log(`Col ${col} / ${this.lines[0].length}`);
       if (colIncludes(col, "#")) {
         continue;
       }
-      colInsert(col, ".");
-      // Double up the column so we can skip over the newly created one
-      col += 1;
+      this.emptyCols.push(col);
     }
+    console.log(`Empty rows: ${this.emptyRows}`);
+    console.log(`Empty cols: ${this.emptyCols}`);
+  }
+  setWeight(weight: number) {
+    this.weight = weight;
   }
   galaxies(): Coord[] {
     const list = [];
@@ -63,6 +57,22 @@ class GalaxyMap {
       }
     }
     return list;
+  }
+  manhattan(one: Coord, two: Coord): number {
+    const between = (val: number, low: number, hi: number): boolean => {
+      if (low > hi) {
+        return between(val, hi, low);
+      }
+      return val >= low && val <= hi;
+    };
+    const weight = this.weight - 1;
+    const rowAdd =
+      this.emptyRows.filter((row) => between(row, one.row, two.row)).length;
+    const colAdd =
+      this.emptyCols.filter((col) => between(col, one.col, two.col)).length;
+    const rows = Math.abs(one.row - two.row);
+    const cols = Math.abs(one.col - two.col);
+    return rows + cols + (rowAdd + colAdd) * weight;
   }
   toString(): string {
     return this.lines.join("\n");
@@ -85,12 +95,25 @@ async function main() {
   const map = new GalaxyMap(contents);
   map.expand();
   const all = combos(map.galaxies());
-  console.log(all, all.length);
-  let sum = 0;
-  for (const pair of all) {
-    sum += pair[0].manhattan(pair[1]);
-  }
-  console.log(`Sum of all manhattan distances is ${sum}`);
+
+  // Part A
+  map.setWeight(2);
+  const sumTwo = all.reduce(
+    (val, pair) => val + map.manhattan(pair[0], pair[1]),
+    0,
+  );
+  console.log(
+    `Sum of all manhattan distances with empty expansion weight 2 is ${sumTwo}`,
+  );
+
+  map.setWeight(1_000_000);
+  const sumMill = all.reduce(
+    (val, pair) => val + BigInt(map.manhattan(pair[0], pair[1])),
+    BigInt(0),
+  );
+  console.log(
+    `Sum of all manahattan distances with empty expansion weight 1,000,000 is ${sumMill}`,
+  );
 }
 
 main();
