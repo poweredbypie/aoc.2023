@@ -1,3 +1,5 @@
+// Run with `deno run --allow-read main.ts`
+
 class Coord {
   row: number;
   col: number;
@@ -5,6 +7,7 @@ class Coord {
     this.row = row;
     this.col = col;
   }
+  // For console.log
   toString() {
     return `(${this.row}, ${this.col})`;
   }
@@ -18,6 +21,8 @@ class GalaxyMap {
   constructor(str: string) {
     this.lines = str.split("\n").filter((line) => line != "");
   }
+  // Find all empty rows and columns, and "expand" the galaxy
+  // This really just finds all the rows and columns so it can be used with GalaxyMap.manhattan
   expand() {
     // Find all empty rows
     for (let row = 0; row < this.lines.length; row += 1) {
@@ -44,9 +49,11 @@ class GalaxyMap {
     console.log(`Empty rows: ${this.emptyRows}`);
     console.log(`Empty cols: ${this.emptyCols}`);
   }
+  // Set the weight of an empty column's expansion. Affects the manhattan distance calculator
   setWeight(weight: number) {
     this.weight = weight;
   }
+  // Find all galaxies (#) in the map
   galaxies(): Coord[] {
     const list = [];
     for (let row = 0; row < this.lines.length; row += 1) {
@@ -58,6 +65,8 @@ class GalaxyMap {
     }
     return list;
   }
+  // Find the weighted manhattan distance between two points in the galaxy.
+  // Takes into account any empty rows and their expansion weights
   manhattan(one: Coord, two: Coord): number {
     const between = (val: number, low: number, hi: number): boolean => {
       if (low > hi) {
@@ -74,11 +83,15 @@ class GalaxyMap {
     const cols = Math.abs(one.col - two.col);
     return rows + cols + (rowAdd + colAdd) * weight;
   }
+  // For console.log
   toString(): string {
     return this.lines.join("\n");
   }
 }
 
+// Thanks to https://stackoverflow.com/a/20765091
+// (list.length) C 2, returns all pair combos in the input list
+// Does not contain any duplicates (e.g. if [one, two] is in the list, [two, one] isn't)
 function combos<T>(list: T[]): [T, T][] {
   const out: [T, T][] = [];
   for (let i = 0; i < list.length; i += 1) {
@@ -106,13 +119,14 @@ async function main() {
     `Sum of all manhattan distances with empty expansion weight 2 is ${sumTwo}`,
   );
 
+  // Part B
   map.setWeight(1_000_000);
   const sumMill = all.reduce(
     (val, pair) => val + BigInt(map.manhattan(pair[0], pair[1])),
     BigInt(0),
   );
   console.log(
-    `Sum of all manahattan distances with empty expansion weight 1,000,000 is ${sumMill}`,
+    `Sum of all manhattan distances with empty expansion weight 1,000,000 is ${sumMill}`,
   );
 }
 
