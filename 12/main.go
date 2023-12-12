@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"slices"
 	"strconv"
@@ -18,11 +17,10 @@ type CacheKey struct {
 type SpringInfo struct {
 	groups  []int
 	damaged string
-	combos  int
 	cache   map[CacheKey]int
 }
 
-func NewInfo(line string) SpringInfo {
+func NewInfo(line string) *SpringInfo {
 	split := strings.Split(line, " ")
 	// Beginning and ending dots are basically useless to us
 	damaged := strings.Trim(split[0], ".")
@@ -31,15 +29,14 @@ func NewInfo(line string) SpringInfo {
 		num, _ := strconv.Atoi(val)
 		groups = append(groups, num)
 	}
-	return SpringInfo{
+	return &SpringInfo{
 		groups:  groups,
 		damaged: damaged,
-		combos:  0,
 		cache:   make(map[CacheKey]int),
 	}
 }
 
-func NewUnfoldedInfo(line string) SpringInfo {
+func NewUnfoldedInfo(line string) *SpringInfo {
 	split := strings.Split(line, " ")
 	// Disgusting
 	join5 := func(str string, sep string) string {
@@ -48,39 +45,19 @@ func NewUnfoldedInfo(line string) SpringInfo {
 	}
 	damaged := join5(split[0], "?")
 	groups := []int{}
+	// EW
 	for _, val := range strings.Split(join5(split[1], ","), ",") {
 		num, _ := strconv.Atoi(val)
 		groups = append(groups, num)
 	}
-	return SpringInfo{
+	return &SpringInfo{
 		groups:  groups,
 		damaged: damaged,
-		combos:  0,
 		cache:   make(map[CacheKey]int),
 	}
 }
 
-func (s *SpringInfo) Validate(str string) bool {
-	index := 0
-	for _, str := range strings.Split(str, ".") {
-		// Remove all empty strings
-		if str == "" {
-			continue
-		}
-		// Too many groups in the string
-		if index >= len(s.groups) {
-			return false
-		}
-		// Group i doesn't match the length
-		if len(str) != s.groups[index] {
-			return false
-		}
-		index += 1
-	}
-	return index == len(s.groups)
-}
-
-func (s *SpringInfo) CountRecur(buf []rune, grpIdx int, whole []rune) int {
+func (s *SpringInfo) CountRecur(buf []rune, grpIdx int) int {
 	// Algorithm:
 	// Find the first "slot" that can fit the current group
 	// Place the group in the slot
@@ -92,10 +69,8 @@ func (s *SpringInfo) CountRecur(buf []rune, grpIdx int, whole []rune) int {
 		// If we can find a '#' between here and the end, we failed
 		// Otherwise, we succeeded! Return 1 to add to the count
 		if slices.Contains(buf, '#') {
-			// log.Printf("Failed with %v", string(whole))
 			return 0
 		} else {
-			// log.Printf("Succeeded with %v (buf '%v')", string(whole), string(buf))
 			return 1
 		}
 	}
@@ -115,19 +90,11 @@ func (s *SpringInfo) CountRecur(buf []rune, grpIdx int, whole []rune) int {
 
 	// Recursive case: find the next slot to put the next group in before continuing
 	groupLen := s.groups[grpIdx]
-	// To store old values when we replace
-	old := make([]rune, groupLen)
-	// Total combinations found
-	sum := 0
+	// Helper functions
 	// Find length of slot
 	findLen := func(idx int) int {
 		iter := idx
-		for buf[iter] == '#' || buf[iter] == '?' {
-			iter += 1
-			if iter >= len(buf) {
-				// Reached the end so stop increasing
-				break
-			}
+		for iter = idx; iter < len(buf) && buf[iter] != '.'; iter += 1 {
 		}
 		return iter - idx
 	}
@@ -137,87 +104,67 @@ func (s *SpringInfo) CountRecur(buf []rune, grpIdx int, whole []rune) int {
 			buf[iter] = '#'
 		}
 	}
+	// Skip separators (non-broken springs)
+	skipDots := func(idx int) int {
+		iter := idx
+		for iter = idx; iter < len(buf) && buf[iter] == '.'; iter += 1 {
+		}
+		return iter
+	}
 
-	bufIdx := 0
 	slotLen := 0
-
-	// Try filling the slot for every slot that we can find that can house this group
-	slotLoop := func() {
+	// Total combinations found
+	sum := 0
+	// Loop until we find a slot that can fit the group, or until we reach the end
+	for idx := skipDots(0); idx < len(buf); idx = skipDots(idx + slotLen) {
+		slotLen = findLen(idx)
+		if slotLen < groupLen {
+			continue
+		}
+		// We found a slot with enough space, now loop through all combinations until we can't anymore
 		for off := 0; off <= slotLen-groupLen; off += 1 {
 			// Calculate the offset for the next group
-			end := bufIdx + off + groupLen
+			end := idx + off + groupLen
+			// If the separator cannot be replaced with a '.', or a '#' is before the offset,
+			// we can't use this.
+			// Only check the separator if we're not at the end of the buffer
+			if (end < len(buf) && buf[end] == '#') || slices.Contains(buf[:idx+off], '#') {
+				continue
+			}
+
+			// To store old values
+			old := make([]rune, groupLen)
+
+			// Get the existing values in the slot to replace later
+			copy(old, buf[idx+off:])
+			fillSlot(idx + off)
 			// This just makes it so the next group doesn't need to check for a '.' at the beginning
 			nextOff := min(end+1, len(buf))
-			// If the separator cannot be replaced with a '.', we can't use this
-			// Only check this if we're not at the end of the buffer
-			if end < len(buf) && buf[end] == '#' {
-				// log.Printf("Buf '%v' at %v is #, skipping", string(buf), nextOff-1)
-				// log.Printf("For group %v of '%v'", grpIdx, string(whole))
-				continue
-			}
-			// Check that our group is precisely groupLen long
-			if slices.Contains(buf[:bufIdx+off], '#') {
-				// log.Printf("Group %v is overcommitting, skipping", grpIdx)
-				// log.Printf("For %v", string(whole))
-				continue
-			}
-			// Get the existing values in the slot to replace later
-			copy(old, buf[bufIdx+off:])
-			fillSlot(bufIdx + off)
-			sum += s.CountRecur(buf[nextOff:], grpIdx+1, whole)
+			sum += s.CountRecur(buf[nextOff:], grpIdx+1)
 			// Paste back in
-			copy(buf[bufIdx+off:], old)
+			copy(buf[idx+off:], old)
 		}
 	}
-
-	// Loop until we find a slot that can fit the group, or until we reach the end
-	for {
-		// Skip leading dots, we can't place a group there
-		for buf[bufIdx] == '.' {
-			bufIdx += 1
-			// We can't place a group anymore, we've reached the end of the buffer
-			if bufIdx >= len(buf) {
-				s.cache[key] = sum
-				return sum
-			}
-		}
-		slotLen = findLen(bufIdx)
-		if slotLen >= groupLen {
-			// We found a slot with enough space, now loop through all combinations until we can't anymore
-			slotLoop()
-		}
-		// Skip the slot if we can't fit the group in there
-		bufIdx += slotLen
-		if bufIdx >= len(buf) {
-			// Again, if we can't place a group anymore, we've reached the end of the buffer
-			s.cache[key] = sum
-			return sum
-		}
-	}
+	// Cache the value we calculated
+	s.cache[key] = sum
+	return sum
 }
 
 func (s *SpringInfo) GetComboCount() int {
-	s.combos = 0
-	// log.Printf("Calling count recur")
-	runes := []rune(s.damaged)
-	s.combos = s.CountRecur(runes, 0, runes)
-	return s.combos
+	return s.CountRecur([]rune(s.damaged), 0)
 }
 
 func main() {
 	file, _ := os.Open("input")
 	defer file.Close()
 	scan := bufio.NewScanner(file)
-	sumA := 0
-	sumB := 0
+	sum := 0
+	unfoldSum := 0
 	for scan.Scan() {
 		line := scan.Text()
-		infoA := NewInfo(line)
-		infoB := NewUnfoldedInfo(line)
-		log.Printf("Running for line %v", line)
-		sumA += infoA.GetComboCount()
-		sumB += infoB.GetComboCount()
+		sum += NewInfo(line).GetComboCount()
+		unfoldSum += NewUnfoldedInfo(line).GetComboCount()
 	}
-	fmt.Printf("Sum of all combinations for all lines is %v\n", sumA)
-	fmt.Printf("Sum of all combinations for all unfolded lines is %v\n", sumB)
+	fmt.Printf("Sum of all combinations for all lines is %v\n", sum)
+	fmt.Printf("Sum of all combinations for all unfolded lines is %v\n", unfoldSum)
 }
