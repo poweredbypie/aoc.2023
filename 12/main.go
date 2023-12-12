@@ -10,10 +10,16 @@ import (
 	"strings"
 )
 
+type CacheKey struct {
+	bufLen int
+	group  int
+}
+
 type SpringInfo struct {
 	groups  []int
 	damaged string
 	combos  int
+	cache   map[CacheKey]int
 }
 
 func NewInfo(line string) SpringInfo {
@@ -29,6 +35,7 @@ func NewInfo(line string) SpringInfo {
 		groups:  groups,
 		damaged: damaged,
 		combos:  0,
+		cache:   make(map[CacheKey]int),
 	}
 }
 
@@ -49,6 +56,7 @@ func NewUnfoldedInfo(line string) SpringInfo {
 		groups:  groups,
 		damaged: damaged,
 		combos:  0,
+		cache:   make(map[CacheKey]int),
 	}
 }
 
@@ -92,12 +100,17 @@ func (s *SpringInfo) CountRecur(buf []rune, grpIdx int, whole []rune) int {
 		}
 	}
 
-	// log.Printf("Buf is %v, group %v", string(buf), grpIdx)
-
 	// Base case: trying to fill a group with an empty buffer
 	// We can't place it anywhere so just return with 0 count
 	if len(buf) == 0 {
 		return 0
+	}
+
+	key := CacheKey{len(buf), grpIdx}
+
+	// Base case: if the value is cached return that instead
+	if val, ok := s.cache[key]; ok {
+		return val
 	}
 
 	// Recursive case: find the next slot to put the next group in before continuing
@@ -164,6 +177,7 @@ func (s *SpringInfo) CountRecur(buf []rune, grpIdx int, whole []rune) int {
 			bufIdx += 1
 			// We can't place a group anymore, we've reached the end of the buffer
 			if bufIdx >= len(buf) {
+				s.cache[key] = sum
 				return sum
 			}
 		}
@@ -176,6 +190,7 @@ func (s *SpringInfo) CountRecur(buf []rune, grpIdx int, whole []rune) int {
 		bufIdx += slotLen
 		if bufIdx >= len(buf) {
 			// Again, if we can't place a group anymore, we've reached the end of the buffer
+			s.cache[key] = sum
 			return sum
 		}
 	}
@@ -198,10 +213,10 @@ func main() {
 	for scan.Scan() {
 		line := scan.Text()
 		infoA := NewInfo(line)
-		// infoB := NewUnfoldedInfo(line)
+		infoB := NewUnfoldedInfo(line)
 		log.Printf("Running for line %v", line)
 		sumA += infoA.GetComboCount()
-		// sumB += infoB.GetComboCount()
+		sumB += infoB.GetComboCount()
 	}
 	fmt.Printf("Sum of all combinations for all lines is %v\n", sumA)
 	fmt.Printf("Sum of all combinations for all unfolded lines is %v\n", sumB)
