@@ -12,39 +12,49 @@ type Pattern struct {
 }
 
 func (p *Pattern) ReflectValue() int {
-	reflectsAtRow := func(row int) bool {
-		// Check in both directions
-		for iter := 0; row+iter+1 < len(p.lines) && row-iter >= 0; iter += 1 {
-			if p.lines[row+iter+1] != p.lines[row-iter] {
-				return false
+	rowDist := func(row1, row2 int) int {
+		dist := 0
+		for col := 0; col < len(p.lines[row1]); col += 1 {
+			if p.lines[row1][col] != p.lines[row2][col] {
+				dist += 1
 			}
 		}
-		return true
+		return dist
 	}
-	colEquals := func(col1, col2 int) bool {
+	reflectRowDist := func(row int) int {
+		// Check in both directions
+		dist := 0
+		for iter := 0; row+iter+1 < len(p.lines) && row-iter >= 0; iter += 1 {
+			dist += rowDist(row+iter+1, row-iter)
+		}
+		return dist
+	}
+	colDist := func(col1, col2 int) int {
+		dist := 0
 		for row := 0; row < len(p.lines); row += 1 {
 			if p.lines[row][col1] != p.lines[row][col2] {
-				return false
+				dist += 1
 			}
 		}
-		return true
+		return dist
 	}
-	reflectsAtCol := func(col int) bool {
+	reflectColDist := func(col int) int {
+		dist := 0
 		for iter := 0; col+iter+1 < len(p.lines[0]) && col-iter >= 0; iter += 1 {
-			if !colEquals(col+iter+1, col-iter) {
-				return false
-			}
+			dist += colDist(col+iter+1, col-iter)
 		}
-		return true
+		return dist
 	}
 	for i := 0; i < len(p.lines)-1; i += 1 {
-		if reflectsAtRow(i) {
+		if reflectRowDist(i) == 1 {
+			// log.Printf("Row %v has a distance of 1 from equivalent", i)
 			log.Printf("Reflects at row %v", i)
 			return (i + 1) * 100
 		}
 	}
 	for i := 0; i < len(p.lines[0])-1; i += 1 {
-		if reflectsAtCol(i) {
+		if reflectColDist(i) == 1 {
+			// log.Printf("Col %v has a distance of 1 from equivalent", i)
 			log.Printf("Reflects at column %v", i)
 			return i + 1
 		}
