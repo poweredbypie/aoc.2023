@@ -1,3 +1,6 @@
+// This is really bad C code only because I didn't want to deal with malloc.
+// If I did this would be significantly more OOP since I like that
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
