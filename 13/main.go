@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -11,7 +10,7 @@ type Pattern struct {
 	lines []string
 }
 
-func (p *Pattern) ReflectValue() int {
+func (p *Pattern) ReflectValue(dist int) int {
 	rowDist := func(row1, row2 int) int {
 		dist := 0
 		for col := 0; col < len(p.lines[row1]); col += 1 {
@@ -46,16 +45,14 @@ func (p *Pattern) ReflectValue() int {
 		return dist
 	}
 	for i := 0; i < len(p.lines)-1; i += 1 {
-		if reflectRowDist(i) == 1 {
+		if reflectRowDist(i) == dist {
 			// log.Printf("Row %v has a distance of 1 from equivalent", i)
-			log.Printf("Reflects at row %v", i)
 			return (i + 1) * 100
 		}
 	}
 	for i := 0; i < len(p.lines[0])-1; i += 1 {
-		if reflectColDist(i) == 1 {
+		if reflectColDist(i) == dist {
 			// log.Printf("Col %v has a distance of 1 from equivalent", i)
-			log.Printf("Reflects at column %v", i)
 			return i + 1
 		}
 	}
@@ -80,15 +77,16 @@ func NewPattern(scan *bufio.Scanner) *Pattern {
 func main() {
 	file, _ := os.Open("input")
 	scan := bufio.NewScanner(file)
-	sum := 0
+	sumPerf := 0
+	sumSmudge := 0
 	for {
 		pattern := NewPattern(scan)
 		if pattern == nil {
 			break
 		}
-		val := pattern.ReflectValue()
-		log.Printf("Val for pattern %v is %v", pattern, val)
-		sum += val
+		sumPerf += pattern.ReflectValue(0)
+		sumSmudge += pattern.ReflectValue(1)
 	}
-	fmt.Printf("Sum of reflect values is %v\n", sum)
+	fmt.Printf("Sum of reflect values is %v\n", sumPerf)
+	fmt.Printf("Sum of reflect values with 1 smudge is %v\n", sumSmudge)
 }
